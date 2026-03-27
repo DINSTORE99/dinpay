@@ -133,10 +133,11 @@ async function buatQRIS(amount) {
     document.getElementById("status").className = "status wait";
     
     document.getElementById("info").innerHTML = `
-      💰 Fee: Rp ${fee.toLocaleString()} <br>
-      💵 Total: Rp ${total.toLocaleString()} <br>
-      ⏳ Expired: 5 menit
-    `;
+  💸 Bayar: Rp ${amount.toLocaleString()} <br>
+  💰 Fee: Rp ${fee.toLocaleString()} <br>
+  🧾 Total: Rp ${total.toLocaleString()} <br>
+  ⏳ Expired qris: 5 menit
+`;
     
     startCountdown(expiredTime);
     cekStatus(d.transaction_id);
