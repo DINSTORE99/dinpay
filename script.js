@@ -10,6 +10,7 @@ let currentSaldo = 0;
 document.getElementById("refreshBtn").onclick = refreshSaldo;
 document.getElementById("customBtn").onclick = customQRIS;
 
+
 function animateSaldo(target) {
   const el = document.getElementById("saldo");
   const start = currentSaldo;
@@ -35,13 +36,13 @@ function animateSaldo(target) {
   requestAnimationFrame(animate);
 }
 
+
 async function loadSaldo() {
   try {
     const res = await fetch(`${API}/api/saldo?apikey=${API_KEY}`);
     const data = await res.json();
     
     let saldo = Number(data?.data?.saldo || 0);
-    
     animateSaldo(saldo);
     
     let kurang = TARGET - saldo;
@@ -51,10 +52,11 @@ async function loadSaldo() {
       kurang === 0 ? "✅ Sudah cukup!" :
       "Kurang Rp " + kurang.toLocaleString();
     
-  } catch (e) {
+  } catch {
     document.getElementById("saldo").innerText = "Error";
   }
 }
+
 
 async function refreshSaldo() {
   if (isLoading) return;
@@ -74,13 +76,39 @@ async function refreshSaldo() {
   }, 800);
 }
 
+
+function pindahQRIS() {
+  const box = document.getElementById("qrisBox");
+  const cards = document.querySelectorAll(".card");
+  
+  if (!box.classList.contains("moved")) {
+    const parent = cards[0].parentNode;
+    
+    if (cards.length >= 3) {
+      parent.insertBefore(box, cards[2]); 
+      box.classList.add("moved");
+    }
+  }
+}
+
+
 async function buatQRIS(amount) {
   if (amount < 1) {
     alert("Minimal 1");
     return;
   }
   
-  document.getElementById("qrisBox").style.display = "block";
+  const box = document.getElementById("qrisBox");
+  
+  pindahQRIS();
+  
+  document.getElementById("qrisImg").src = "";
+  document.getElementById("info").innerHTML = "";
+  document.getElementById("timer").innerText = "";
+  
+  box.style.display = "block";
+  box.scrollIntoView({ behavior: "smooth", block: "start" });
+  
   document.getElementById("status").innerText = "Membuat QRIS...";
   
   try {
@@ -88,7 +116,7 @@ async function buatQRIS(amount) {
     const data = await res.json();
     
     if (data.status !== "success") {
-      document.getElementById("status").innerText = "Gagal membuat QRIS";
+      document.getElementById("status").innerText = "Gagal membuat QRIS ❌";
       return;
     }
     
@@ -107,23 +135,25 @@ async function buatQRIS(amount) {
     document.getElementById("info").innerHTML = `
       💰 Fee: Rp ${fee.toLocaleString()} <br>
       💵 Total: Rp ${total.toLocaleString()} <br>
-      ⏳ Expired Qris:5 menit
+      ⏳ Expired: 5 menit
     `;
     
     startCountdown(expiredTime);
     cekStatus(d.transaction_id);
     
-  } catch (e) {
-    document.getElementById("status").innerText = "Error membuat QRIS";
+  } catch {
+    document.getElementById("status").innerText = "Error membuat QRIS ❌";
   }
 }
 
 function customQRIS() {
   let val = parseInt(document.getElementById("nominal").value);
+  
   if (!val || val < 1) {
     alert("Minimal 1");
     return;
   }
+  
   buatQRIS(val);
 }
 
@@ -136,13 +166,13 @@ function cekStatus(id) {
       if (data.paid) {
         document.getElementById("status").innerText = "Pembayaran berhasil ✅";
         document.getElementById("status").className = "status success";
+        
         clearInterval(interval);
         loadSaldo();
       }
-    } catch (e) {}
+    } catch {}
   }, 5000);
 }
-
 
 function startCountdown(expiredTime) {
   clearInterval(countdownInterval);
@@ -154,9 +184,11 @@ function startCountdown(expiredTime) {
     
     if (diff <= 0) {
       clearInterval(countdownInterval);
+      
       document.getElementById("timer").innerText = "QRIS expired ❌";
       document.getElementById("status").innerText = "Expired";
       document.getElementById("status").className = "status expired";
+      
       return;
     }
     
