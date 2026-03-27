@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title> payment</title>
+
+<link rel="stylesheet" href="style2.css">
+</head>
+<body>
+
+<h1>Biar gratisanmu terus menyala</h1>
+
+<div class="card">
+  <p>Real-time saldo saat ini</p>
+  <div class="big" id="saldo">Rp 0</div>
+  <button class="btn" id="refreshBtn">🔄 Refresh Saldo</button>
+</div>
+
+<div class="card">
+  <p>Kebutuhan Server: Rp 35.000</p>
+  <div class="big" id="kurang">Menghitung...</div>
+</div>
+
+<div class="card">
+  <p>Buat Pembayaran seikhlasnya</p>
+  
+  <input type="number" id="nominal" placeholder="Nominal bebas">
+  <button class="btn" id="customBtn">Buat QRIS</button>
+  
+  <div style="margin-top:10px;">
+    <button class="btn" onclick="buatQRIS(2500)">Rp 2.500</button>
+    <button class="btn" onclick="buatQRIS(4000)">Rp 4.000</button>
+    <button class="btn" onclick="buatQRIS(10000)">Rp 10.000</button>
+  </div>
+</div>
+
+<div class="card qris" id="qrisBox" style="display:none;">
+  <p id="status" class="status wait">Menunggu pembayaran...</p>
+  <img id="qrisImg">
+  <p id="info"></p>
+  <p id="timer" class="status"></p>
+</div>
+
+<script src="script2.js"></script>
+</body>
+</html>
