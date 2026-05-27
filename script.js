@@ -1,5 +1,5 @@
-const API = "https://my-payment.autsc.my.id";
-const API_KEY = "fcddf332-c491-450e-8909-7b398833d2d7";
+const API = "https://qris.adijayavpn.cloud";
+const API_KEY = "358a436e-ca93-40f5-8c84-945dbed67d6f";
 const TARGET = 35000;
 
 let countdownInterval;
