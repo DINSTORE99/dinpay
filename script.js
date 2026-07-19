@@ -1,4 +1,4 @@
-const API = "https://payment.mybotv1.workers.dev";
+const API = "https://payment.mybotv1.workers.dev/api";
 const API_KEY = "e33ea8a9-ad31-4ee4-8a18-cb67f2edba5e";
 const TARGET = 35000;
 
