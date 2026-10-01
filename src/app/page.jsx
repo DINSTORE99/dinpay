@@ -132,8 +132,8 @@ function PaymentContent() {
             </label>
             <input
               type="number"
-              min={1000}
-              step={100}
+              min={1}
+              step={1}
               value={amount}
               onChange={(e) => setAmount(Number(e.target.value))}
               style={{ width: "100%", padding: 10, marginBottom: 12, borderRadius: 8, border: "1px solid #cbd5e1", boxSizing: "border-box" }}
