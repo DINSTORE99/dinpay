@@ -4,7 +4,7 @@ export async function POST(req) {
   try {
     const { amount, description, testMode, fee_by, qris_method } = await req.json();
 
-    if (!amount || amount < 1000) {
+    if (!amount || amount < 1 ) {
       return NextResponse.json({ success: false, message: "Nominal minimal Rp 1 " }, { status: 400 });
     }
 
