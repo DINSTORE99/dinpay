@@ -1,17 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function HomePage() {
   const [amount, setAmount] = useState(10000);
   const [desc, setDesc] = useState("Pesanan #1");
-  const [isTestMode, setIsTestMode] = useState(false);
   const [loading, setLoading] = useState(false);
   const [qris, setQris] = useState(null);
-  const [status, setStatus] = useState("pending");
+  const [status, setStatus] = useState("pending"); // pending | success | expired
+  const [timeLeft, setTimeLeft] = useState(0);
   const [checking, setChecking] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
+  // Buat QRIS baru
   const handleCreate = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -23,22 +24,29 @@ export default function HomePage() {
       const res = await fetch("/api/qris/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount, description: desc, testMode: isTestMode }),
+        body: JSON.stringify({ amount, description: desc, testMode: false }),
       });
 
       const result = await res.json();
       if (!result.success) throw new Error(result.message);
 
       setQris(result.data);
+
+      // Hitung selisih detik untuk countdown
+      const expTime = new Date(result.data.expired_at).getTime();
+      const now = new Date().getTime();
+      const secondsRemaining = Math.max(0, Math.floor((expTime - now) / 1000));
+      setTimeLeft(secondsRemaining > 0 ? secondsRemaining : 300); // default 5 menit jika parsing gagal
     } catch (err) {
-      setErrorMsg(err.message || "Gagal memproses QRIS");
+      setErrorMsg(err.message || "Gagal membuat tagihan");
     } finally {
       setLoading(false);
     }
   };
 
+  // Cek status manual atau via interval
   const checkStatus = async () => {
-    if (!qris?.transaction_id) return;
+    if (!qris?.transaction_id || status === "success") return;
     setChecking(true);
     try {
       const res = await fetch("/api/qris/status", {
@@ -51,25 +59,51 @@ export default function HomePage() {
         setStatus(data.data.status);
       }
     } catch (e) {
-      console.error(e);
+      console.error("Gagal memeriksa status", e);
     } finally {
       setChecking(false);
     }
   };
 
-  return (
-    <main style={{ maxWidth: 860, margin: "30px auto", padding: "0 16px", fontFamily: "sans-serif" }}>
-      <header style={{ marginBottom: 24, borderBottom: "1px solid #e2e8f0", paddingBottom: 16 }}>
-        <h1 style={{ margin: 0, fontSize: 24, color: "#0f172a" }}>DinnPay Gateway & API</h1>
-        <p style={{ margin: "4px 0 0", color: "#64748b", fontSize: 14 }}>
-          Terminal QRIS langsung dan Gateway API untuk sistem eksternal
-        </p>
-      </header>
+  // Timer hitung mundur & auto cek status setiap 5 detik
+  useEffect(() => {
+    if (!qris || status === "success" || status === "expired") return;
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
-        {/* Terminal Bayar */}
-        <section style={{ background: "#ffffff", padding: 20, borderRadius: 12, border: "1px solid #e2e8f0" }}>
-          <h2 style={{ fontSize: 16, marginTop: 0 }}>Terminal Pembuat QRIS</h2>
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          setStatus("expired");
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    const polling = setInterval(() => {
+      checkStatus();
+    }, 5000);
+
+    return () => {
+      clearInterval(timer);
+      clearInterval(polling);
+    };
+  }, [qris, status]);
+
+  // Format detik ke format mm:ss
+  const formatTime = (secs) => {
+    const m = Math.floor(secs / 60).toString().padStart(2, "0");
+    const s = (secs % 60).toString().padStart(2, "0");
+    return `${m}:${s}`;
+  };
+
+  return (
+    <main style={{ maxWidth: 460, margin: "32px auto", padding: "0 16px", fontFamily: "sans-serif" }}>
+      <div style={{ background: "#ffffff", padding: 24, borderRadius: 16, border: "1px solid #e2e8f0", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)" }}>
+        <h2 style={{ margin: "0 0 16px", fontSize: 20, textAlign: "center" }}>DinnPay Terminal</h2>
+
+        {/* Form Tagihan */}
+        {!qris ? (
           <form onSubmit={handleCreate}>
             <label style={{ display: "block", fontSize: 13, marginBottom: 4, fontWeight: 600 }}>
               Nominal (Rupiah)
@@ -80,7 +114,7 @@ export default function HomePage() {
               step={100}
               value={amount}
               onChange={(e) => setAmount(Number(e.target.value))}
-              style={{ width: "100%", padding: 8, marginBottom: 12, borderRadius: 6, border: "1px solid #cbd5e1", boxSizing: "border-box" }}
+              style={{ width: "100%", padding: 10, marginBottom: 12, borderRadius: 8, border: "1px solid #cbd5e1", boxSizing: "border-box" }}
               required
             />
 
@@ -91,122 +125,144 @@ export default function HomePage() {
               type="text"
               value={desc}
               onChange={(e) => setDesc(e.target.value)}
-              style={{ width: "100%", padding: 8, marginBottom: 14, borderRadius: 6, border: "1px solid #cbd5e1", boxSizing: "border-box" }}
+              style={{ width: "100%", padding: 10, marginBottom: 16, borderRadius: 8, border: "1px solid #cbd5e1", boxSizing: "border-box" }}
               required
             />
 
-            <div style={{ marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}>
-              <input
-                type="checkbox"
-                id="testCheck"
-                checked={isTestMode}
-                onChange={(e) => setIsTestMode(e.target.checked)}
-              />
-              <label htmlFor="testCheck" style={{ fontSize: 12, color: "#475569" }}>
-                Mode Percobaan (Sandbox)
-              </label>
-            </div>
-
-            {errorMsg && <p style={{ color: "#dc2626", fontSize: 13 }}>{errorMsg}</p>}
+            {errorMsg && <p style={{ color: "#dc2626", fontSize: 13, margin: "0 0 12px" }}>{errorMsg}</p>}
 
             <button
               type="submit"
               disabled={loading}
               style={{
                 width: "100%",
-                padding: 10,
+                padding: 12,
                 background: "#2563eb",
                 color: "#fff",
                 border: "none",
-                borderRadius: 6,
+                borderRadius: 8,
                 fontWeight: 600,
                 cursor: loading ? "not-allowed" : "pointer",
               }}
             >
-              {loading ? "Memproses..." : "Generate QRIS"}
+              {loading ? "Memproses..." : "Buat Tagihan QRIS"}
             </button>
           </form>
+        ) : (
+          /* Area Pembayaran & Hasil */
+          <div style={{ textAlign: "center" }}>
+            {/* Status: Menunggu Pembayaran */}
+            {status === "pending" && (
+              <>
+                <div style={{ display: "inline-block", padding: "6px 14px", borderRadius: 20, background: "#fef3c7", color: "#92400e", fontSize: 13, fontWeight: 600, marginBottom: 12 }}>
+                  ⏳ Menunggu Pembayaran
+                </div>
 
-          {qris && (
-            <div style={{ marginTop: 20, textAlign: "center", borderTop: "1px dashed #cbd5e1", paddingTop: 16 }}>
-              <p style={{ margin: 0, fontSize: 18, fontWeight: "bold" }}>
-                Rp {qris.total_amount?.toLocaleString("id-ID")}
-              </p>
-              {qris.amount_uniq > 0 && (
-                <span style={{ fontSize: 11, color: "#dc2626" }}>Kode unik: {qris.amount_uniq}</span>
-              )}
-              <img
-                src={qris.qr_url}
-                alt="QRIS"
-                width={200}
-                height={200}
-                style={{ display: "block", margin: "12px auto", borderRadius: 8 }}
-              />
-              <div style={{ marginBottom: 10 }}>
-                <span style={{
-                  padding: "4px 8px",
-                  borderRadius: 12,
-                  fontSize: 12,
-                  background: status === "success" ? "#dcfce7" : "#fef3c7",
-                  color: status === "success" ? "#166534" : "#92400e"
-                }}>
-                  {status.toUpperCase()}
-                </span>
+                <div style={{ fontSize: 13, color: "#64748b", marginBottom: 4 }}>Batas Waktu Bayar</div>
+                <div style={{ fontSize: 26, fontWeight: 700, color: timeLeft <= 60 ? "#dc2626" : "#0f172a", marginBottom: 16 }}>
+                  {formatTime(timeLeft)}
+                </div>
+
+                <div style={{ background: "#f8fafc", padding: 12, borderRadius: 12, border: "1px solid #f1f5f9", marginBottom: 16 }}>
+                  <div style={{ fontSize: 13, color: "#64748b" }}>Total yang Harus Dibayar:</div>
+                  <div style={{ fontSize: 24, fontWeight: 800, color: "#0f172a", marginTop: 2 }}>
+                    Rp {qris.total_amount?.toLocaleString("id-ID")}
+                  </div>
+                  {qris.amount_uniq > 0 && (
+                    <small style={{ color: "#dc2626", display: "block", marginTop: 2 }}>
+                      (Wajib sesuai nominal + kode unik {qris.amount_uniq})
+                    </small>
+                  )}
+                </div>
+
+                <div style={{ width: 240, height: 240, margin: "0 auto 16px", padding: 8, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12 }}>
+                  <img
+                    src={qris.qr_url}
+                    alt="QRIS"
+                    width={240}
+                    height={240}
+                    style={{ display: "block", borderRadius: 8 }}
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={checkStatus}
+                  disabled={checking}
+                  style={{
+                    background: "#f1f5f9",
+                    border: "1px solid #cbd5e1",
+                    padding: "8px 16px",
+                    borderRadius: 8,
+                    fontSize: 13,
+                    cursor: checking ? "not-allowed" : "pointer",
+                  }}
+                >
+                  {checking ? "Memeriksa..." : "Cek Pembayaran Sekarang"}
+                </button>
+              </>
+            )}
+
+            {/* Status: Berhasil / Diterima */}
+            {status === "success" && (
+              <div style={{ padding: "20px 0" }}>
+                <div style={{ width: 64, height: 64, borderRadius: "50%", background: "#dcfce7", color: "#166534", fontSize: 32, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+                  ✓
+                </div>
+                <h3 style={{ margin: "0 0 6px", color: "#166534", fontSize: 20 }}>Pembayaran Diterima!</h3>
+                <p style={{ margin: "0 0 16px", color: "#64748b", fontSize: 14 }}>
+                  Transaksi <strong>Rp {qris.total_amount?.toLocaleString("id-ID")}</strong> berhasil dilunasi.
+                </p>
+                <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 20 }}>
+                  Order ID: {qris.transaction_id}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setQris(null)}
+                  style={{
+                    padding: "10px 20px",
+                    background: "#2563eb",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: 8,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                >
+                  Transaksi Baru
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={checkStatus}
-                disabled={checking}
-                style={{ padding: "4px 10px", fontSize: 12, cursor: "pointer" }}
-              >
-                {checking ? "Mengecek..." : "Cek Status"}
-              </button>
-            </div>
-          )}
-        </section>
+            )}
 
-        {/* Info Endpoint API */}
-        <section style={{ background: "#ffffff", padding: 20, borderRadius: 12, border: "1px solid #e2e8f0" }}>
-          <h2 style={{ fontSize: 16, marginTop: 0 }}>Dokumentasi Endpoint API</h2>
-          
-          <div style={{ marginBottom: 16 }}>
-            <span style={{ background: "#dbeafe", color: "#1e40af", padding: "2px 6px", borderRadius: 4, fontSize: 11, fontWeight: "bold" }}>
-              POST
-            </span>
-            <code style={{ marginLeft: 8, fontSize: 13, fontWeight: "bold" }}>/api/qris/create</code>
-            <p style={{ fontSize: 12, color: "#64748b", margin: "4px 0" }}>Endpoint untuk membuat transaksi baru.</p>
-            <pre style={{ background: "#f8fafc", padding: 8, borderRadius: 6, fontSize: 11, overflowX: "auto" }}>
-{`// Body (JSON)
-{
-  "amount": 10000,
-  "description": "Invoice #101",
-  "testMode": false
-}`}
-            </pre>
+            {/* Status: Kedaluwarsa */}
+            {status === "expired" && (
+              <div style={{ padding: "20px 0" }}>
+                <div style={{ width: 64, height: 64, borderRadius: "50%", background: "#fee2e2", color: "#991b1b", fontSize: 32, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+                  ✕
+                </div>
+                <h3 style={{ margin: "0 0 6px", color: "#991b1b", fontSize: 18 }}>Tagihan Kedaluwarsa</h3>
+                <p style={{ margin: "0 0 20px", color: "#64748b", fontSize: 14 }}>
+                  Batas waktu pembayaran telah habis. Silakan buat QRIS baru.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setQris(null)}
+                  style={{
+                    padding: "10px 20px",
+                    background: "#0f172a",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: 8,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                >
+                  Ulangi Transaksi
+                </button>
+              </div>
+            )}
           </div>
-
-          <div style={{ marginBottom: 16 }}>
-            <span style={{ background: "#dbeafe", color: "#1e40af", padding: "2px 6px", borderRadius: 4, fontSize: 11, fontWeight: "bold" }}>
-              POST
-            </span>
-            <code style={{ marginLeft: 8, fontSize: 13, fontWeight: "bold" }}>/api/qris/status</code>
-            <p style={{ fontSize: 12, color: "#64748b", margin: "4px 0" }}>Cek status transaksi manual.</p>
-            <pre style={{ background: "#f8fafc", padding: 8, borderRadius: 6, fontSize: 11, overflowX: "auto" }}>
-{`// Body (JSON)
-{
-  "transaction_id": "100043729581"
-}`}
-            </pre>
-          </div>
-
-          <div>
-            <span style={{ background: "#dcfce7", color: "#166534", padding: "2px 6px", borderRadius: 4, fontSize: 11, fontWeight: "bold" }}>
-              WEBHOOK
-            </span>
-            <code style={{ marginLeft: 8, fontSize: 13, fontWeight: "bold" }}>/api/webhook</code>
-            <p style={{ fontSize: 12, color: "#64748b", margin: "4px 0" }}>URL callback otomatis untuk dipasang di dasbor BuatQris.</p>
-          </div>
-        </section>
+        )}
       </div>
     </main>
   );
