@@ -307,7 +307,7 @@ function PaymentContent() {
           <div style={{ fontSize: 12, fontWeight: 600, color: "#64748b", marginBottom: 4 }}>Request Body (JSON):</div>
           <pre style={{ background: "#0f172a", color: "#f8fafc", padding: 12, borderRadius: 6, fontSize: 12, overflowX: "auto" }}>
 {`{
-  "amount": 10000,
+  "amount": 1,
   "description": "Invoice #001",
   "testMode": false
 }`}
@@ -319,8 +319,8 @@ function PaymentContent() {
   "success": true,
   "data": {
     "transaction_id": "100043729581",
-    "amount": 10000,
-    "total_amount": 10282,
+    "amount": 1,
+    "total_amount": 283,
     "amount_uniq": 282,
     "qr_url": "https://app.buatqris.site/poto/qris/...",
     "expired_at": "2026-10-01T10:30:00+07:00",
@@ -360,7 +360,7 @@ function PaymentContent() {
             Arahkan pelanggan langsung ke URL terminal dengan membawa nilai nominal dan nomor pesanan:
           </p>
           <pre style={{ background: "#0f172a", color: "#38bdf8", padding: 12, borderRadius: 6, fontSize: 12, overflowX: "auto" }}>
-{`https://dinnpay.vercel.app/?amount=50000&order_id=INV-9921`}
+{`https://dinnpay.vercel.app/?amount=1&order_id=INV-9921`}
           </pre>
         </div>
       </section>
