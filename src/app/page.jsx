@@ -111,9 +111,14 @@ function PaymentContent() {
     return `${m}:${s}`;
   };
 
+  // Hitung rincian fee & total
+  const nominalAwal = Number(qris?.amount || amount || 0);
+  const totalBayar = Number(qris?.total_amount || 0);
+  const kodeUnik = Number(qris?.amount_uniq || 0);
+  const feeLayanan = Number(qris?.fee || Math.max(0, totalBayar - nominalAwal - kodeUnik));
+
   return (
     <main style={{ maxWidth: 840, margin: "24px auto", padding: "0 16px", fontFamily: "sans-serif" }}>
-      {/* Header */}
       <header style={{ textAlign: "center", marginBottom: 28 }}>
         <h1 style={{ margin: 0, fontSize: 26, color: "#0f172a" }}>DinnPay Payment Gateway</h1>
         <p style={{ margin: "6px 0 0", color: "#64748b", fontSize: 14 }}>
@@ -121,7 +126,6 @@ function PaymentContent() {
         </p>
       </header>
 
-      {/* Terminal Area */}
       <div style={{ maxWidth: 440, margin: "0 auto 40px", background: "#ffffff", padding: 24, borderRadius: 16, border: "1px solid #e2e8f0", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)" }}>
         <h2 style={{ margin: "0 0 16px", fontSize: 18, textAlign: "center", color: "#1e293b" }}>Terminal Kasir</h2>
 
@@ -183,16 +187,41 @@ function PaymentContent() {
                   {formatTime(timeLeft)}
                 </div>
 
-                <div style={{ background: "#f8fafc", padding: 14, borderRadius: 12, border: "1px solid #e2e8f0", marginBottom: 16 }}>
-                  <div style={{ fontSize: 12, color: "#64748b" }}>Total yang Wajib Ditransfer:</div>
-                  <div style={{ fontSize: 24, fontWeight: 800, color: "#0f172a", marginTop: 2 }}>
-                    Rp {qris.total_amount?.toLocaleString("id-ID")}
+                {/* Rincian Tagihan, Fee, dan Total */}
+                <div style={{ background: "#f8fafc", padding: 14, borderRadius: 12, border: "1px solid #e2e8f0", marginBottom: 16, textAlign: "left" }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 8, borderBottom: "1px solid #e2e8f0", paddingBottom: 6 }}>
+                    Rincian Pembayaran
                   </div>
-                  {qris.amount_uniq > 0 && (
-                    <small style={{ color: "#dc2626", fontWeight: 600, display: "block", marginTop: 4 }}>
-                      (Wajib pas sesuai 3 angka unik: {qris.amount_uniq})
-                    </small>
+
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#64748b", marginBottom: 4 }}>
+                    <span>Nominal:</span>
+                    <span style={{ fontWeight: 600, color: "#0f172a" }}>Rp {nominalAwal.toLocaleString("id-ID")}</span>
+                  </div>
+
+                  {feeLayanan > 0 && (
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#64748b", marginBottom: 4 }}>
+                      <span>Biaya Layanan (Fee):</span>
+                      <span style={{ fontWeight: 600, color: "#0f172a" }}>Rp {feeLayanan.toLocaleString("id-ID")}</span>
+                    </div>
                   )}
+
+                  {kodeUnik > 0 && (
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#64748b", marginBottom: 6 }}>
+                      <span>Kode Unik:</span>
+                      <span style={{ fontWeight: 600, color: "#dc2626" }}>+{kodeUnik}</span>
+                    </div>
+                  )}
+
+                  <div style={{ borderTop: "1px dashed #cbd5e1", paddingTop: 8, marginTop: 4, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>Total Bayar:</span>
+                    <span style={{ fontSize: 20, fontWeight: 800, color: "#2563eb" }}>
+                      Rp {totalBayar.toLocaleString("id-ID")}
+                    </span>
+                  </div>
+
+                  <small style={{ color: "#dc2626", fontWeight: 600, display: "block", marginTop: 8, fontSize: 11, textAlign: "center" }}>
+                    ⚠️ Wajib transfer persis <strong>Rp {totalBayar.toLocaleString("id-ID")}</strong> agar terbaca otomatis
+                  </small>
                 </div>
 
                 <div style={{ width: 220, height: 220, margin: "0 auto 16px", padding: 6, border: "1px solid #e2e8f0", borderRadius: 12, background: "#fff" }}>
@@ -232,7 +261,7 @@ function PaymentContent() {
                 </div>
                 <h3 style={{ margin: "0 0 6px", color: "#166534", fontSize: 20 }}>PEMBAYARAN DITERIMA!</h3>
                 <p style={{ margin: "0 0 16px", color: "#475569", fontSize: 14 }}>
-                  Transaksi sebesar <strong>Rp {qris.total_amount?.toLocaleString("id-ID")}</strong> berhasil diverifikasi lunas.
+                  Transaksi sebesar <strong>Rp {totalBayar.toLocaleString("id-ID")}</strong> berhasil diverifikasi lunas.
                 </p>
                 <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 20 }}>
                   ID: {qris.transaction_id}
@@ -287,14 +316,12 @@ function PaymentContent() {
         )}
       </div>
 
-      {/* Dokumentasi API */}
       <section style={{ background: "#ffffff", padding: 24, borderRadius: 16, border: "1px solid #e2e8f0" }}>
         <h2 style={{ fontSize: 20, margin: "0 0 16px", color: "#0f172a" }}>Dokumentasi Integrasi API</h2>
         <p style={{ fontSize: 14, color: "#64748b", marginBottom: 20 }}>
           Gunakan endpoint berikut untuk mengintegrasikan pembayaran DinnPay ke sistem aplikasi eksternal, website order, atau bot.
         </p>
 
-        {/* Endpoint 1 */}
         <div style={{ marginBottom: 24, border: "1px solid #f1f5f9", borderRadius: 8, padding: 16, background: "#fafafa" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
             <span style={{ background: "#2563eb", color: "#fff", fontSize: 12, fontWeight: "bold", padding: "3px 8px", borderRadius: 4 }}>
@@ -320,8 +347,9 @@ function PaymentContent() {
   "data": {
     "transaction_id": "100043729581",
     "amount": 1,
-    "total_amount": 283,
+    "fee": 0,
     "amount_uniq": 282,
+    "total_amount": 283,
     "qr_url": "https://app.buatqris.site/poto/qris/...",
     "expired_at": "2026-10-01T10:30:00+07:00",
     "status": "pending"
@@ -330,7 +358,6 @@ function PaymentContent() {
           </pre>
         </div>
 
-        {/* Endpoint 2 */}
         <div style={{ marginBottom: 24, border: "1px solid #f1f5f9", borderRadius: 8, padding: 16, background: "#fafafa" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
             <span style={{ background: "#059669", color: "#fff", fontSize: 12, fontWeight: "bold", padding: "3px 8px", borderRadius: 4 }}>
@@ -348,7 +375,6 @@ function PaymentContent() {
           </pre>
         </div>
 
-        {/* Endpoint 3 */}
         <div style={{ border: "1px solid #f1f5f9", borderRadius: 8, padding: 16, background: "#fafafa" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
             <span style={{ background: "#7c3aed", color: "#fff", fontSize: 12, fontWeight: "bold", padding: "3px 8px", borderRadius: 4 }}>
