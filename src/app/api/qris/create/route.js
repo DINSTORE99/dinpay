@@ -5,7 +5,7 @@ export async function POST(req) {
     const { amount, description, testMode, fee_by, qris_method } = await req.json();
 
     if (!amount || amount < 1000) {
-      return NextResponse.json({ success: false, message: "Nominal minimal Rp 1.000" }, { status: 400 });
+      return NextResponse.json({ success: false, message: "Nominal minimal Rp 1 " }, { status: 400 });
     }
 
     const accountId = process.env.BUATQRIS_ACCOUNT_ID;
