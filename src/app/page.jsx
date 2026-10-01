@@ -6,7 +6,6 @@ import { useSearchParams } from "next/navigation";
 function PaymentContent() {
   const searchParams = useSearchParams();
 
-  // Ambil parameter otomatis dari URL jika ada
   const queryAmount = searchParams.get("amount") || "10000";
   const queryOrderId = searchParams.get("order_id") || "Pesanan #1";
 
@@ -14,7 +13,7 @@ function PaymentContent() {
   const [desc, setDesc] = useState(queryOrderId);
   const [loading, setLoading] = useState(false);
   const [qris, setQris] = useState(null);
-  const [status, setStatus] = useState("pending");
+  const [status, setStatus] = useState("pending"); // pending | success | expired
   const [timeLeft, setTimeLeft] = useState(300);
   const [checking, setChecking] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -51,7 +50,6 @@ function PaymentContent() {
     }
   };
 
-  // Otomatis buat QRIS jika diakses lewat link order (ada ?amount=... di URL)
   useEffect(() => {
     if (searchParams.get("amount")) {
       generateQris(searchParams.get("amount"), searchParams.get("order_id") || "Invoice");
@@ -83,7 +81,6 @@ function PaymentContent() {
     }
   };
 
-  // Timer hitung mundur & auto cek status tiap 5 detik
   useEffect(() => {
     if (!qris || status === "success" || status === "expired") return;
 
@@ -100,7 +97,7 @@ function PaymentContent() {
 
     const polling = setInterval(() => {
       checkStatus();
-    }, 5000);
+    }, 4000);
 
     return () => {
       clearInterval(timer);
@@ -115,9 +112,9 @@ function PaymentContent() {
   };
 
   return (
-    <main style={{ maxWidth: 460, margin: "24px auto", padding: "0 16px", fontFamily: "sans-serif" }}>
-      <div style={{ background: "#ffffff", padding: 24, borderRadius: 16, border: "1px solid #e2e8f0" }}>
-        <h2 style={{ margin: "0 0 16px", fontSize: 20, textAlign: "center" }}>DinnPay Terminal</h2>
+    <main style={{ maxWidth: 440, margin: "24px auto", padding: "0 16px", fontFamily: "sans-serif" }}>
+      <div style={{ background: "#ffffff", padding: 24, borderRadius: 16, border: "1px solid #e2e8f0", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)" }}>
+        <h2 style={{ margin: "0 0 16px", fontSize: 20, textAlign: "center", color: "#0f172a" }}>DinnPay Terminal</h2>
 
         {!qris ? (
           <form onSubmit={handleManualSubmit}>
@@ -161,41 +158,42 @@ function PaymentContent() {
                 cursor: loading ? "not-allowed" : "pointer",
               }}
             >
-              {loading ? "Memproses Order..." : "Buat Tagihan QRIS"}
+              {loading ? "Membuat Tagihan..." : "Buat Tagihan QRIS"}
             </button>
           </form>
         ) : (
           <div style={{ textAlign: "center" }}>
+            {/* Tampilan 1: Menunggu Pembayaran */}
             {status === "pending" && (
               <>
-                <div style={{ display: "inline-block", padding: "4px 12px", borderRadius: 16, background: "#fef3c7", color: "#92400e", fontSize: 12, fontWeight: 600, marginBottom: 10 }}>
-                  ⏳ Menunggu Pembayaran
+                <div style={{ display: "inline-block", padding: "6px 16px", borderRadius: 20, background: "#fef3c7", color: "#92400e", fontSize: 13, fontWeight: 700, marginBottom: 12 }}>
+                  ⏳ MENUNGGU PEMBAYARAN
                 </div>
 
-                <div style={{ fontSize: 12, color: "#64748b" }}>Batas Waktu Bayar</div>
-                <div style={{ fontSize: 24, fontWeight: 700, color: timeLeft <= 60 ? "#dc2626" : "#0f172a", marginBottom: 12 }}>
+                <div style={{ fontSize: 12, color: "#64748b" }}>Sisa Waktu Pembayaran</div>
+                <div style={{ fontSize: 26, fontWeight: 800, color: timeLeft <= 60 ? "#dc2626" : "#0f172a", marginBottom: 14 }}>
                   {formatTime(timeLeft)}
                 </div>
 
-                <div style={{ background: "#f8fafc", padding: 12, borderRadius: 10, border: "1px solid #f1f5f9", marginBottom: 14 }}>
-                  <div style={{ fontSize: 12, color: "#64748b" }}>Keterangan: {desc}</div>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: "#0f172a", marginTop: 4 }}>
+                <div style={{ background: "#f8fafc", padding: 14, borderRadius: 12, border: "1px solid #e2e8f0", marginBottom: 16 }}>
+                  <div style={{ fontSize: 12, color: "#64748b" }}>Total yang Wajib Ditransfer:</div>
+                  <div style={{ fontSize: 24, fontWeight: 800, color: "#0f172a", marginTop: 2 }}>
                     Rp {qris.total_amount?.toLocaleString("id-ID")}
                   </div>
                   {qris.amount_uniq > 0 && (
-                    <small style={{ color: "#dc2626", fontSize: 11 }}>
-                      (Wajib pas sesuai kode unik {qris.amount_uniq})
+                    <small style={{ color: "#dc2626", fontWeight: 600, display: "block", marginTop: 4 }}>
+                      (Wajib pas sesuai 3 angka unik: {qris.amount_uniq})
                     </small>
                   )}
                 </div>
 
-                <div style={{ width: 220, height: 220, margin: "0 auto 14px", padding: 6, border: "1px solid #e2e8f0", borderRadius: 10 }}>
+                <div style={{ width: 220, height: 220, margin: "0 auto 16px", padding: 6, border: "1px solid #e2e8f0", borderRadius: 12, background: "#fff" }}>
                   <img
                     src={qris.qr_url}
                     alt="QRIS"
                     width={220}
                     height={220}
-                    style={{ display: "block", borderRadius: 6 }}
+                    style={{ display: "block", borderRadius: 8 }}
                   />
                 </div>
 
@@ -206,65 +204,76 @@ function PaymentContent() {
                   style={{
                     background: "#f1f5f9",
                     border: "1px solid #cbd5e1",
-                    padding: "8px 14px",
+                    padding: "9px 16px",
                     borderRadius: 8,
-                    fontSize: 12,
+                    fontSize: 13,
                     cursor: checking ? "not-allowed" : "pointer",
                     width: "100%",
+                    fontWeight: 600,
                   }}
                 >
-                  {checking ? "Memeriksa..." : "Cek Pembayaran Sekarang"}
+                  {checking ? "Memeriksa mutasi..." : "Cek Pembayaran Manual"}
                 </button>
               </>
             )}
 
+            {/* Tampilan 2: Pembayaran Diterima */}
             {status === "success" && (
-              <div style={{ padding: "16px 0" }}>
-                <div style={{ width: 56, height: 56, borderRadius: "50%", background: "#dcfce7", color: "#166534", fontSize: 28, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
+              <div style={{ padding: "20px 0" }}>
+                <div style={{ width: 64, height: 64, borderRadius: "50%", background: "#dcfce7", color: "#166534", fontSize: 32, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}>
                   ✓
                 </div>
-                <h3 style={{ margin: "0 0 6px", color: "#166534", fontSize: 18 }}>Pembayaran Diterima!</h3>
-                <p style={{ margin: "0 0 16px", color: "#64748b", fontSize: 13 }}>
-                  Pesanan <strong>{desc}</strong> sebesar Rp {qris.total_amount?.toLocaleString("id-ID")} telah lunas.
+                <h3 style={{ margin: "0 0 6px", color: "#166534", fontSize: 20 }}>PEMBAYARAN DITERIMA!</h3>
+                <p style={{ margin: "0 0 16px", color: "#475569", fontSize: 14 }}>
+                  Transaksi sebesar <strong>Rp {qris.total_amount?.toLocaleString("id-ID")}</strong> berhasil diverifikasi lunas.
+                </p>
+                <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 20 }}>
+                  ID: {qris.transaction_id}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setQris(null)}
+                  style={{
+                    padding: "10px 20px",
+                    background: "#2563eb",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: 8,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    width: "100%",
+                  }}
+                >
+                  Selesai / Transaksi Baru
+                </button>
+              </div>
+            )}
+
+            {/* Tampilan 3: Kedaluwarsa */}
+            {status === "expired" && (
+              <div style={{ padding: "20px 0" }}>
+                <div style={{ width: 64, height: 64, borderRadius: "50%", background: "#fee2e2", color: "#991b1b", fontSize: 32, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}>
+                  ✕
+                </div>
+                <h3 style={{ margin: "0 0 6px", color: "#991b1b", fontSize: 18 }}>TAGIHAN KEDALUWARSA</h3>
+                <p style={{ margin: "0 0 20px", color: "#64748b", fontSize: 13 }}>
+                  Waktu pembayaran telah habis.
                 </p>
                 <button
                   type="button"
                   onClick={() => setQris(null)}
                   style={{
-                    padding: "8px 16px",
-                    background: "#2563eb",
-                    color: "#fff",
-                    border: "none",
-                    borderRadius: 6,
-                    fontSize: 13,
-                    cursor: "pointer",
-                  }}
-                >
-                  Transaksi Baru
-                </button>
-              </div>
-            )}
-
-            {status === "expired" && (
-              <div style={{ padding: "16px 0" }}>
-                <div style={{ width: 56, height: 56, borderRadius: "50%", background: "#fee2e2", color: "#991b1b", fontSize: 28, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
-                  ✕
-                </div>
-                <h3 style={{ margin: "0 0 6px", color: "#991b1b", fontSize: 18 }}>Waktu Pembayaran Habis</h3>
-                <button
-                  type="button"
-                  onClick={() => setQris(null)}
-                  style={{
-                    padding: "8px 16px",
+                    padding: "10px 20px",
                     background: "#0f172a",
                     color: "#fff",
                     border: "none",
-                    borderRadius: 6,
-                    fontSize: 13,
+                    borderRadius: 8,
+                    fontWeight: 600,
                     cursor: "pointer",
+                    width: "100%",
                   }}
                 >
-                  Ulangi
+                  Ulangi Pembayaran
                 </button>
               </div>
             )}
