@@ -5,7 +5,7 @@ export async function POST(req) {
   try {
     const signingSecret = process.env.BUATQRIS_SIGNING_SECRET;
     if (!signingSecret) {
-      return NextResponse.json({ error: "Signing secret belum diatur" }, { status: 500 });
+      return NextResponse.json({ error: "Signing secret belum dikonfigurasi" }, { status: 500 });
     }
 
     const rawBody = await req.text();
@@ -15,22 +15,40 @@ export async function POST(req) {
       "sha256=" +
       crypto.createHmac("sha256", signingSecret).update(rawBody).digest("hex");
 
-    const valid =
+    const isValid =
       signatureHeader.length === calculatedSig.length &&
       crypto.timingSafeEqual(Buffer.from(signatureHeader), Buffer.from(calculatedSig));
 
-    if (!valid) {
+    if (!isValid) {
       return NextResponse.json({ error: "Signature tidak cocok" }, { status: 401 });
     }
 
     const payload = JSON.parse(rawBody);
+    const eventName = req.headers.get("x-buatqris-event") || payload.event;
 
-    if (payload.event === "payment.success") {
-      console.log(`[SUKSES] Transaksi ${payload.transaction_id} lunas sebesar Rp ${payload.total_amount}`);
+    // Tangani semua event
+    switch (eventName) {
+      case "payment.success":
+        console.log(`[PEMBAYARAN SUKSES] Trx: ${payload.transaction_id}, Total: Rp ${payload.total_amount}`);
+        break;
+      case "payment.expired":
+        console.log(`[PEMBAYARAN KEDALUWARSA] Trx: ${payload.transaction_id}`);
+        break;
+      case "payment.failed":
+        console.log(`[PEMBAYARAN GAGAL] Trx: ${payload.transaction_id}`);
+        break;
+      case "withdrawal.approved":
+        console.log(`[PENARIKAN BERHASIL] WD ID: ${payload.withdrawal_id}`);
+        break;
+      case "withdrawal.rejected":
+        console.log(`[PENARIKAN DITOLAK] WD ID: ${payload.withdrawal_id}`);
+        break;
+      default:
+        console.log(`[EVENT LAIN] ${eventName}`);
     }
 
     return NextResponse.json({ received: true }, { status: 200 });
-  } catch (err) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
