@@ -6,14 +6,14 @@ import { useSearchParams } from "next/navigation";
 function PaymentContent() {
   const searchParams = useSearchParams();
 
-  const queryAmount = searchParams.get("amount") || "10000";
+  const queryAmount = searchParams.get("amount") || "1";
   const queryOrderId = searchParams.get("order_id") || "Pesanan #1";
 
   const [amount, setAmount] = useState(Number(queryAmount));
   const [desc, setDesc] = useState(queryOrderId);
   const [loading, setLoading] = useState(false);
   const [qris, setQris] = useState(null);
-  const [status, setStatus] = useState("pending"); // pending | success | expired
+  const [status, setStatus] = useState("pending");
   const [timeLeft, setTimeLeft] = useState(300);
   const [checking, setChecking] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -112,9 +112,18 @@ function PaymentContent() {
   };
 
   return (
-    <main style={{ maxWidth: 440, margin: "24px auto", padding: "0 16px", fontFamily: "sans-serif" }}>
-      <div style={{ background: "#ffffff", padding: 24, borderRadius: 16, border: "1px solid #e2e8f0", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)" }}>
-        <h2 style={{ margin: "0 0 16px", fontSize: 20, textAlign: "center", color: "#0f172a" }}>DinnPay Terminal</h2>
+    <main style={{ maxWidth: 840, margin: "24px auto", padding: "0 16px", fontFamily: "sans-serif" }}>
+      {/* Header */}
+      <header style={{ textAlign: "center", marginBottom: 28 }}>
+        <h1 style={{ margin: 0, fontSize: 26, color: "#0f172a" }}>DinnPay Payment Gateway</h1>
+        <p style={{ margin: "6px 0 0", color: "#64748b", fontSize: 14 }}>
+          Terminal Transaksi QRIS Otomatis & Dokumentasi Integrasi API
+        </p>
+      </header>
+
+      {/* Terminal Area */}
+      <div style={{ maxWidth: 440, margin: "0 auto 40px", background: "#ffffff", padding: 24, borderRadius: 16, border: "1px solid #e2e8f0", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)" }}>
+        <h2 style={{ margin: "0 0 16px", fontSize: 18, textAlign: "center", color: "#1e293b" }}>Terminal Kasir</h2>
 
         {!qris ? (
           <form onSubmit={handleManualSubmit}>
@@ -163,7 +172,6 @@ function PaymentContent() {
           </form>
         ) : (
           <div style={{ textAlign: "center" }}>
-            {/* Tampilan 1: Menunggu Pembayaran */}
             {status === "pending" && (
               <>
                 <div style={{ display: "inline-block", padding: "6px 16px", borderRadius: 20, background: "#fef3c7", color: "#92400e", fontSize: 13, fontWeight: 700, marginBottom: 12 }}>
@@ -217,7 +225,6 @@ function PaymentContent() {
               </>
             )}
 
-            {/* Tampilan 2: Pembayaran Diterima */}
             {status === "success" && (
               <div style={{ padding: "20px 0" }}>
                 <div style={{ width: 64, height: 64, borderRadius: "50%", background: "#dcfce7", color: "#166534", fontSize: 32, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}>
@@ -244,12 +251,11 @@ function PaymentContent() {
                     width: "100%",
                   }}
                 >
-                  Selesai / Transaksi Baru
+                  Transaksi Baru
                 </button>
               </div>
             )}
 
-            {/* Tampilan 3: Kedaluwarsa */}
             {status === "expired" && (
               <div style={{ padding: "20px 0" }}>
                 <div style={{ width: 64, height: 64, borderRadius: "50%", background: "#fee2e2", color: "#991b1b", fontSize: 32, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}>
@@ -280,13 +286,91 @@ function PaymentContent() {
           </div>
         )}
       </div>
+
+      {/* Dokumentasi API */}
+      <section style={{ background: "#ffffff", padding: 24, borderRadius: 16, border: "1px solid #e2e8f0" }}>
+        <h2 style={{ fontSize: 20, margin: "0 0 16px", color: "#0f172a" }}>Dokumentasi Integrasi API</h2>
+        <p style={{ fontSize: 14, color: "#64748b", marginBottom: 20 }}>
+          Gunakan endpoint berikut untuk mengintegrasikan pembayaran DinnPay ke sistem aplikasi eksternal, website order, atau bot.
+        </p>
+
+        {/* Endpoint 1 */}
+        <div style={{ marginBottom: 24, border: "1px solid #f1f5f9", borderRadius: 8, padding: 16, background: "#fafafa" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+            <span style={{ background: "#2563eb", color: "#fff", fontSize: 12, fontWeight: "bold", padding: "3px 8px", borderRadius: 4 }}>
+              POST
+            </span>
+            <code style={{ fontSize: 14, fontWeight: "bold" }}>/api/qris/create</code>
+          </div>
+          <p style={{ fontSize: 13, color: "#475569", margin: "0 0 10px" }}>Membuat invoice QRIS baru.</p>
+          
+          <div style={{ fontSize: 12, fontWeight: 600, color: "#64748b", marginBottom: 4 }}>Request Body (JSON):</div>
+          <pre style={{ background: "#0f172a", color: "#f8fafc", padding: 12, borderRadius: 6, fontSize: 12, overflowX: "auto" }}>
+{`{
+  "amount": 10000,
+  "description": "Invoice #001",
+  "testMode": false
+}`}
+          </pre>
+
+          <div style={{ fontSize: 12, fontWeight: 600, color: "#64748b", margin: "8px 0 4px" }}>Response Sukses:</div>
+          <pre style={{ background: "#0f172a", color: "#f8fafc", padding: 12, borderRadius: 6, fontSize: 12, overflowX: "auto" }}>
+{`{
+  "success": true,
+  "data": {
+    "transaction_id": "100043729581",
+    "amount": 10000,
+    "total_amount": 10282,
+    "amount_uniq": 282,
+    "qr_url": "https://app.buatqris.site/poto/qris/...",
+    "expired_at": "2026-10-01T10:30:00+07:00",
+    "status": "pending"
+  }
+}`}
+          </pre>
+        </div>
+
+        {/* Endpoint 2 */}
+        <div style={{ marginBottom: 24, border: "1px solid #f1f5f9", borderRadius: 8, padding: 16, background: "#fafafa" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+            <span style={{ background: "#059669", color: "#fff", fontSize: 12, fontWeight: "bold", padding: "3px 8px", borderRadius: 4 }}>
+              POST
+            </span>
+            <code style={{ fontSize: 14, fontWeight: "bold" }}>/api/qris/status</code>
+          </div>
+          <p style={{ fontSize: 13, color: "#475569", margin: "0 0 10px" }}>Memeriksa mutasi dan status pelunasan transaksi.</p>
+          
+          <div style={{ fontSize: 12, fontWeight: 600, color: "#64748b", marginBottom: 4 }}>Request Body (JSON):</div>
+          <pre style={{ background: "#0f172a", color: "#f8fafc", padding: 12, borderRadius: 6, fontSize: 12, overflowX: "auto" }}>
+{`{
+  "transaction_id": "100043729581"
+}`}
+          </pre>
+        </div>
+
+        {/* Endpoint 3 */}
+        <div style={{ border: "1px solid #f1f5f9", borderRadius: 8, padding: 16, background: "#fafafa" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+            <span style={{ background: "#7c3aed", color: "#fff", fontSize: 12, fontWeight: "bold", padding: "3px 8px", borderRadius: 4 }}>
+              GET / LINK
+            </span>
+            <code style={{ fontSize: 14, fontWeight: "bold" }}>Checkout Otomatis via Parameter URL</code>
+          </div>
+          <p style={{ fontSize: 13, color: "#475569", margin: "0 0 10px" }}>
+            Arahkan pelanggan langsung ke URL terminal dengan membawa nilai nominal dan nomor pesanan:
+          </p>
+          <pre style={{ background: "#0f172a", color: "#38bdf8", padding: 12, borderRadius: 6, fontSize: 12, overflowX: "auto" }}>
+{`https://dinnpay.vercel.app/?amount=50000&order_id=INV-9921`}
+          </pre>
+        </div>
+      </section>
     </main>
   );
 }
 
 export default function HomePage() {
   return (
-    <Suspense fallback={<div style={{ textAlign: "center", padding: 40 }}>Memuat Terminal...</div>}>
+    <Suspense fallback={<div style={{ textAlign: "center", padding: 40 }}>Memuat Halaman...</div>}>
       <PaymentContent />
     </Suspense>
   );
