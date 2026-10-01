@@ -7,12 +7,11 @@ export default function HomePage() {
   const [desc, setDesc] = useState("Pesanan #1");
   const [loading, setLoading] = useState(false);
   const [qris, setQris] = useState(null);
-  const [status, setStatus] = useState("pending"); // pending | success | expired
+  const [status, setStatus] = useState("pending");
   const [timeLeft, setTimeLeft] = useState(0);
   const [checking, setChecking] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  // Buat QRIS baru
   const handleCreate = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -32,11 +31,10 @@ export default function HomePage() {
 
       setQris(result.data);
 
-      // Hitung selisih detik untuk countdown
       const expTime = new Date(result.data.expired_at).getTime();
       const now = new Date().getTime();
       const secondsRemaining = Math.max(0, Math.floor((expTime - now) / 1000));
-      setTimeLeft(secondsRemaining > 0 ? secondsRemaining : 300); // default 5 menit jika parsing gagal
+      setTimeLeft(secondsRemaining > 0 ? secondsRemaining : 300);
     } catch (err) {
       setErrorMsg(err.message || "Gagal membuat tagihan");
     } finally {
@@ -44,7 +42,6 @@ export default function HomePage() {
     }
   };
 
-  // Cek status manual atau via interval
   const checkStatus = async () => {
     if (!qris?.transaction_id || status === "success") return;
     setChecking(true);
@@ -65,7 +62,6 @@ export default function HomePage() {
     }
   };
 
-  // Timer hitung mundur & auto cek status setiap 5 detik
   useEffect(() => {
     if (!qris || status === "success" || status === "expired") return;
 
@@ -90,7 +86,6 @@ export default function HomePage() {
     };
   }, [qris, status]);
 
-  // Format detik ke format mm:ss
   const formatTime = (secs) => {
     const m = Math.floor(secs / 60).toString().padStart(2, "0");
     const s = (secs % 60).toString().padStart(2, "0");
@@ -102,7 +97,6 @@ export default function HomePage() {
       <div style={{ background: "#ffffff", padding: 24, borderRadius: 16, border: "1px solid #e2e8f0", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)" }}>
         <h2 style={{ margin: "0 0 16px", fontSize: 20, textAlign: "center" }}>DinnPay Terminal</h2>
 
-        {/* Form Tagihan */}
         {!qris ? (
           <form onSubmit={handleCreate}>
             <label style={{ display: "block", fontSize: 13, marginBottom: 4, fontWeight: 600 }}>
@@ -149,9 +143,7 @@ export default function HomePage() {
             </button>
           </form>
         ) : (
-          /* Area Pembayaran & Hasil */
           <div style={{ textAlign: "center" }}>
-            {/* Status: Menunggu Pembayaran */}
             {status === "pending" && (
               <>
                 <div style={{ display: "inline-block", padding: "6px 14px", borderRadius: 20, background: "#fef3c7", color: "#92400e", fontSize: 13, fontWeight: 600, marginBottom: 12 }}>
@@ -203,7 +195,6 @@ export default function HomePage() {
               </>
             )}
 
-            {/* Status: Berhasil / Diterima */}
             {status === "success" && (
               <div style={{ padding: "20px 0" }}>
                 <div style={{ width: 64, height: 64, borderRadius: "50%", background: "#dcfce7", color: "#166534", fontSize: 32, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
@@ -213,9 +204,6 @@ export default function HomePage() {
                 <p style={{ margin: "0 0 16px", color: "#64748b", fontSize: 14 }}>
                   Transaksi <strong>Rp {qris.total_amount?.toLocaleString("id-ID")}</strong> berhasil dilunasi.
                 </p>
-                <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 20 }}>
-                  Order ID: {qris.transaction_id}
-                </div>
                 <button
                   type="button"
                   onClick={() => setQris(null)}
@@ -234,7 +222,6 @@ export default function HomePage() {
               </div>
             )}
 
-            {/* Status: Kedaluwarsa */}
             {status === "expired" && (
               <div style={{ padding: "20px 0" }}>
                 <div style={{ width: 64, height: 64, borderRadius: "50%", background: "#fee2e2", color: "#991b1b", fontSize: 32, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
@@ -242,7 +229,7 @@ export default function HomePage() {
                 </div>
                 <h3 style={{ margin: "0 0 6px", color: "#991b1b", fontSize: 18 }}>Tagihan Kedaluwarsa</h3>
                 <p style={{ margin: "0 0 20px", color: "#64748b", fontSize: 14 }}>
-                  Batas waktu pembayaran telah habis. Silakan buat QRIS baru.
+                  Batas waktu pembayaran telah habis.
                 </p>
                 <button
                   type="button"
